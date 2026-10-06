@@ -1,42 +1,156 @@
-# Classifier — Classificador de Perfil de Aluno com TensorFlow.js em Node.js
+# Classifier — Recomendação de Trilhas de Estudo com Machine Learning + LLM
 
-\--Image of: --Node.js --Image of: --TensorFlow.js --Image of: --JavaScript --Image of: --License
+O **Classifier** é uma plataforma de recomendação educacional que combina dois tipos de IA, cada um no papel em que é mais forte:
 
-O **Classifier** (repositório: `node-tfjs-student-classifier`) é um microsserviço autônomo de Inteligência Artificial desenvolvido em **Node.js** com **TensorFlow.js**. O sistema analisa o histórico semanal de estudos e o nível de senioridade técnica de um desenvolvedor para classificar seu perfil e recomendar automaticamente o plano de estudos mais adequado (**Basic** ou **Pro**).
+* Um **modelo de Machine Learning próprio** (TensorFlow.js em Node.js) que **classifica o perfil do aluno** e **aprende continuamente** com os dados que entram na plataforma (treinamento + *fine-tuning*).
+* Uma **LLM com escopo limitado** que transforma essa classificação em uma **trilha de estudos personalizada e explicada**, montada apenas a partir do catálogo de conteúdos da própria plataforma.
+
+> O ML decide **quem é o aluno**. A LLM decide **como explicar e sequenciar o caminho** — sem inventar cursos, sem chat livre e com custo previsível.
 
 ---
 
-## 🎯 Objetivos do Projeto
+## 🎯 Objetivos
 
 ### Objetivo Técnico
 
-Demonstrar a implementação ponta a ponta de um pipeline de Machine Learning no ecossistema JavaScript/Node.js sem dependência de bibliotecas Python ou serviços de nuvem externos. O projeto cobre:
+Demonstrar um sistema de recomendação de ponta a ponta no ecossistema JavaScript, cobrindo:
 
-* Sanitização e vetorização de dados brutos (*Min-Max Normalization* e *One-Hot Encoding*).
-* Manipulação de Tensores bidimensionais (`tf.tensor2d`).
-* Construção e compilação de uma rede neural profunda com camadas **ReLU** e **Softmax**.
-* Treinamento por épocas com otimizador **Adam** e avaliação de métricas de perda (*loss*).
-* Gerenciamento estrito de memória de tensores via `.dispose()`.
+* Ingestão e validação de dados de alunos via API.
+* Pré-processamento (*Min-Max Normalization*, *One-Hot Encoding*) e vetorização em tensores.
+* Classificação com rede neural (`tf.sequential`, camadas **ReLU** e **Softmax**).
+* **Ciclo de aprendizado contínuo:** *fine-tuning* periódico com dados novos, avaliação em base de teste e promoção controlada de versões do modelo.
+* Integração com LLM usando **saída estruturada (JSON)**, catálogo fechado e limites de custo.
 
 ### Objetivo Comercial
 
-Automatizar o processo de *onboarding* e personalização de ofertas em plataformas digitais, direcionando o cliente para o plano ideal no momento do cadastro. A solução atinge **custo zero de infraestrutura de IA**, pois elimina a cobrança por requisição/tokens associada a APIs de terceiros.
+Oferecer a **EdTechs, bootcamps e áreas de T&D corporativo** um motor de recomendação *plug-and-play* que:
+
+* **Personaliza o onboarding** de cada aluno no momento do cadastro, aumentando a conversão para o plano adequado.
+* **Aumenta a taxa de conclusão** ao entregar uma trilha coerente com o nível e a disponibilidade reais da pessoa.
+* **Escala com custo controlado:** a classificação roda localmente em milissegundos e sem custo por requisição; a LLM é chamada **uma vez por trilha gerada**, não a cada interação.
+* **Melhora sozinho com o uso:** cada aluno que conclui (ou abandona) uma trilha vira um novo exemplo de treino.
 
 ---
 
-## 👥 Público-Alvo e Necessidade de Mercado
+## 👥 Público-Alvo
 
-### Público-Alvo
+| Segmento | Dor | Como o Classifier resolve |
+| --- | --- | --- |
+| **EdTechs e plataformas de cursos** | Alunos perdidos em catálogos grandes; baixa conclusão | Trilha personalizada já no cadastro |
+| **Bootcamps** | Turmas heterogêneas; nivelamento manual | Classificação automática de nível + trilha de nivelamento |
+| **T&D corporativo / RH** | Planos de desenvolvimento genéricos | Trilhas por cargo, senioridade e disponibilidade do colaborador |
+| **Recrutadores e lideranças técnicas** | Avaliar domínio prático de IA aplicada | Projeto completo: ML próprio + LLM + MLOps em Node.js |
 
-1. **EdTechs e Plataformas de Ensino:** Plataformas que precisam recomendar cursos, trilhas e planos de forma personalizada.
-2. **SaaS e E-commerce:** Empresas que buscam motores de recomendação leves para personalização de ofertas.
-3. **Recrutadores e Lideranças Técnicas:** Avaliadores que buscam comprovar domínio técnico em engenharia de software aplicada à IA no ambiente Node.js.
+---
 
-### Valor de Mercado e Resolução de Dores
+## 🧭 Como funciona
 
-* **Economia de Escala:** Processamento local sem custos recorrentes de chamadas a APIs pagas.
-* **Privacidade e LGPD/GDPR:** Todo o treinamento e inferência ocorrem na memória local, sem tráfego de dados sensíveis do usuário para a nuvem.
-* **Ultra Baixa Latência:** Respostas calculadas em menos de **10 milissegundos**, sem gargalos de conexões HTTP externas.
+```
+                 ┌──────────────────────────────────────────────┐
+  Aluno ───────► │ 1. API de Ingestão (validação dos dados)     │
+                 └──────────────────────┬───────────────────────┘
+                                        ▼
+                 ┌──────────────────────────────────────────────┐
+                 │ 2. Pré-processamento → vetor de entrada      │
+                 └──────────────────────┬───────────────────────┘
+                                        ▼
+                 ┌──────────────────────────────────────────────┐
+                 │ 3. Classificador TF.js → perfil + confiança  │◄──┐
+                 └──────────────────────┬───────────────────────┘   │
+                                        ▼                           │
+                 ┌──────────────────────────────────────────────┐   │
+                 │ 4. LLM limitada + catálogo → trilha (JSON)   │   │
+                 └──────────────────────┬───────────────────────┘   │
+                                        ▼                           │
+                 ┌──────────────────────────────────────────────┐   │
+                 │ 5. Entrega da trilha + coleta de feedback    │   │
+                 └──────────────────────┬───────────────────────┘   │
+                                        ▼                           │
+                 ┌──────────────────────────────────────────────┐   │
+                 │ 6. Fine-tuning periódico com dados novos ────┼───┘
+                 └──────────────────────────────────────────────┘
+```
+
+### 1. Ingestão de dados
+
+Endpoint que recebe o perfil do aluno e valida cada campo antes de qualquer processamento. Valores fora do domínio (ex.: senioridade desconhecida, horas negativas) são rejeitados com erro claro, em vez de gerar uma previsão silenciosamente errada.
+
+Atributos previstos:
+
+| Atributo | Tipo | Exemplo |
+| --- | --- | --- |
+| `horasEstudo` | numérico (h/semana) | `8` |
+| `senioridade` | categórico | `Iniciante`, `Pleno`, `Senior` |
+| `objetivo` | categórico | `Front-end`, `Back-end`, `Dados`, `IA` |
+| `conhecimentosPrevios` | lista | `["JavaScript", "Git"]` |
+| `prazoMeses` | numérico | `6` |
+
+### 2. Pré-processamento
+
+* **Min-Max** para atributos numéricos (ex.: horas de estudo → intervalo `[0, 1]`).
+* **One-Hot Encoding** para atributos categóricos.
+* Os parâmetros de normalização e a ordem das categorias são **versionados junto com o modelo**, garantindo que treino e inferência usem exatamente a mesma transformação.
+
+### 3. Classificador (Machine Learning)
+
+Rede neural sequencial em TensorFlow.js:
+
+| Camada | Tipo | Unidades | Ativação | Função |
+| --- | --- | --- | --- | --- |
+| Entrada | Tensor 2D | N atributos | — | Vetor do aluno, ex.: `[Iniciante, Pleno, Senior, HorasNorm]` |
+| Oculta | Dense | 8+ | **ReLU** | Combinações não-lineares dos atributos |
+| Saída | Dense | K perfis | **Softmax** | Probabilidade de cada perfil |
+
+A saída é o **perfil do aluno com o grau de confiança** (ex.: `Pro — 94%`), que alimenta a etapa da LLM.
+
+### 4. LLM limitada → trilha de estudos
+
+A LLM **não decide o perfil** e **não conversa livremente**. Ela recebe:
+
+* o perfil e a confiança calculados pelo classificador;
+* os dados do aluno (sem dados pessoais identificáveis);
+* o **catálogo fechado** de módulos da plataforma;
+
+e devolve uma trilha em **JSON validado por schema**, por exemplo:
+
+```json
+{
+  "perfil": "Pro",
+  "duracaoSemanas": 12,
+  "etapas": [
+    {
+      "ordem": 1,
+      "moduloId": "node-fundamentos",
+      "justificativa": "Base necessária para os módulos de API, considerando 8h/semana disponíveis."
+    }
+  ]
+}
+```
+
+**Por que "limitada":**
+
+| Limite | Motivo |
+| --- | --- |
+| Só pode usar módulos do catálogo (IDs validados após a resposta) | Evita recomendar cursos inexistentes (alucinação) |
+| Saída estruturada com schema | Resposta sempre processável pelo sistema |
+| Teto de tokens por requisição | Custo previsível por trilha |
+| Uma geração por aluno (e por atualização de perfil) | Escala sem custo por interação |
+| Sem dados pessoais no prompt | Privacidade e conformidade com a LGPD |
+| Trilha padrão por perfil quando a LLM estiver indisponível | O serviço continua respondendo |
+
+### 5. Feedback
+
+A plataforma registra o que aconteceu depois da recomendação: **conclusão da trilha, abandono, avaliação do aluno e mudança de plano**. Esses eventos viram os **rótulos** dos novos exemplos de treino.
+
+### 6. Aprendizado contínuo (fine-tuning)
+
+Executado periodicamente (ex.: `npm run retrain`), fora do caminho da requisição:
+
+1. Carrega o modelo em produção e os dados novos rotulados.
+2. Treina com **dados novos + amostra dos antigos**, evitando o *esquecimento catastrófico*.
+3. Avalia o novo modelo em uma **base de teste separada**.
+4. **Promove a nova versão só se ela superar a atual** (*champion/challenger*); caso contrário, mantém a anterior.
+5. Salva o modelo versionado (`model.json` + `weights.bin` + parâmetros de pré-processamento).
 
 ---
 
@@ -44,108 +158,129 @@ Automatizar o processo de *onboarding* e personalização de ofertas em platafor
 
 ### Requisitos Funcionais (RF)
 
-* **RF01 - Ingestão de Dados:** Recebimento de registros brutos (horas de estudo e nível de senioridade).
-* **RF02 - Normalização de Dados:** Aplicação de escala min-max para ajustar as horas de estudo no intervalo $[0, 1]$.
-* **RF03 - Codificação Categórica (*One-Hot Encoding*):** Mapeamento binário do nível de senioridade (Iniciante, Pleno, Sênior) em vetores de 3 posições.
-* **RF04 - Arquitetura Neural:** Construção de modelo sequencial (`tf.sequential`) com camada oculta **ReLU** e camada de saída **Softmax**.
-* **RF05 - Ciclo de Treinamento:** Ajuste de pesos e viéses ao longo de 100 épocas utilizando otimizador **Adam** e função de perda *Categorical Crossentropy*.
-* **RF06 - Serviço de Inferência:** Vetorização em tempo real de novos perfis e emissão de recomendação baseada na maior probabilidade.
+* **RF01 — Ingestão:** receber e validar perfis de alunos via API.
+* **RF02 — Pré-processamento:** normalizar e codificar atributos de forma idêntica no treino e na inferência.
+* **RF03 — Classificação:** retornar o perfil do aluno com probabilidade associada.
+* **RF04 — Geração de trilha:** produzir trilha em JSON a partir do perfil e do catálogo, via LLM.
+* **RF05 — Validação da trilha:** descartar ou corrigir etapas com módulos fora do catálogo.
+* **RF06 — Feedback:** registrar conclusão, abandono e avaliação das trilhas.
+* **RF07 — Fine-tuning:** retreinar o modelo com dados novos e promover versões apenas após avaliação.
+* **RF08 — Fallback:** entregar trilha padrão por perfil quando a LLM não responder.
 
 ### Requisitos Não-Funcionais (RNF)
 
-* **RNF01 - Ambiente de Execução:** Compatibilidade com **Node.js v20+ / v22+** e suporte a ES Modules (`import/export`).
-* **RNF02 - Engine de IA:** Utilização do pacote nativo `@tensorflow/tfjs-node` com bindings em C++.
-* **RNF03 - Performance:** Latência de inferência inferior a **10 ms** por requisição pós-treino.
-* **RNF04 - Autonomia:** Execução 100% offline e independente.
-* **RNF05 - Gestão de Memória:** Desalocação explícita de tensores da memória V8/C++ através do método `.dispose()`.
+* **RNF01 — Ambiente:** Node.js 20/22 LTS com ES Modules.
+* **RNF02 — Engine de ML:** `@tensorflow/tfjs-node`, inferência local.
+* **RNF03 — Latência:** classificação abaixo de 10 ms após o modelo carregado; o modelo é carregado uma única vez na inicialização.
+* **RNF04 — Custo:** chamada à LLM limitada a uma por geração de trilha, com teto de tokens.
+* **RNF05 — Privacidade:** nenhum dado pessoal identificável enviado à LLM.
+* **RNF06 — Memória:** desalocação explícita de tensores com `.dispose()`.
+* **RNF07 — Reprodutibilidade:** modelo e parâmetros de pré-processamento versionados juntos.
 
 ---
 
-## 🏗️ Arquitetura do Sistema
+## 💰 Estimativa de custo da LLM
 
-A aplicação está dividida em **3 camadas principais**:
+Valores ilustrativos, considerando o modelo padrão `claude-opus-5-5` (US$ 4 por milhão de tokens de entrada e US$ 20 por milhão de saída) e uma trilha com ~3.000 tokens de entrada e ~1.500 de saída:
 
-```
-[Dados Brutos (JS)] ➔ [1. Camada de Pré-Processamento] ➔ Tensores (xs, ys)
-                                                               │
-                                                               ▼
-[Predição / Decisão] 🧮 [3. Camada de Inferência] ◄── [2. Camada Neural (TF.js)]
+| Item | Cálculo | Custo aprox. |
+| --- | --- | --- |
+| Entrada | 3.000 × US$ 4 / 1M | US$ 0,012 |
+| Saída | 1.500 × US$ 20 / 1M | US$ 0,030 |
+| **Por trilha gerada** | | **≈ US$ 0,04** |
 
-```
+Alavancas para reduzir o custo em escala:
 
-### Detalhamento da Rede Neural
-
-| Camada      | Tipo      | Neurônios / Unidades | Ativação    | Função na Arquitetura                                                 |
-| ----------- | --------- | -------------------- | ----------- | --------------------------------------------------------------------- |
-| **Entrada** | Tensor 2D | 4 atributos          | N/A         | Recebe o vetor $[HorasNorm, Iniciante, Pleno, Senior]$.             |
-| **Oculta**  | Dense     | 8 neurônios          | **ReLU**    | Extrai padrões não-lineares das combinações de entrada.               |
-| **Saída**   | Dense     | 2 neurônios          | **Softmax** | Retorna a distribuição de probabilidade $[Prob\_Basic, Prob\_Pro]$. |
+* **Prompt caching** do catálogo e das instruções, que se repetem em toda requisição.
+* **Batch API** (≈ 50% mais barata) para onboarding em massa, quando a trilha não precisa ser instantânea.
+* Ajuste do nível de esforço (`effort`) do modelo conforme a complexidade do catálogo.
+* Modelo configurável por variável de ambiente, para cada cliente escolher o equilíbrio entre custo e qualidade.
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 📈 Escalabilidade e modelo de negócio
 
-* **Linguagem:** JavaScript (Node.js ES2022)
-* **Framework de IA:** `@tensorflow/tfjs-node`
-* **Gerenciador de Pacotes:** `npm`
-* **Controle de Versão:** Git &amp; GitHub
+* **Multi-tenant:** cada cliente (EdTech, bootcamp, empresa) tem seu próprio catálogo e seu próprio modelo ajustado com os dados dos seus alunos.
+* **Custo marginal baixo:** a classificação é local e praticamente gratuita; a LLM entra apenas na geração da trilha.
+* **Efeito de rede de dados:** quanto mais alunos usam a plataforma, mais exemplos rotulados e melhor o classificador de cada cliente.
+* **Monetização sugerida:** assinatura por aluno ativo, com faixas por volume.
 
----
+### Métricas de sucesso
 
-## 🌀 Estratégia de Execução
-
-O projeto foi desenvolvido segundo o **Modelo Espiral (Iterativo e Incremental)**:
-
-1. **Concepção &amp; Prova de Conceito (MVP):** Validação dos scripts de normalização e vetorização de dados.
-2. **Ciclo de Arquitetura &amp; Treino:** Construção da topologia da rede neural e ajuste de hiperparâmetros (épocas, taxa de aprendizado e otimizador).
-3. **Refatoração &amp; Performance:** Validação dos tempos de resposta e inclusão de descarte explícito de tensores com `.dispose()`.
-4. **Documentação &amp; Publicação:** Produção de documentação técnica e estruturação do repositório para exibição em portfólio.
-
----
-
-## 📅 Cronograma de Desenvolvimento
-
-| Sprint       | Fase                 | Principais Atividades                                                         | Entregável                      |
-| ------------ | -------------------- | ----------------------------------------------------------------------------- | ------------------------------- |
-| **Sprint 1** | Modelagem &amp; Ingestão | Configuração do projeto Node.js e funções de Normalização / One-Hot Encoding. | Módulo de pré-processamento.    |
-| **Sprint 2** | Arquitetura Neural   | Instalação do `@tensorflow/tfjs-node` e montagem das camadas ReLU/Softmax.    | Estrutura do modelo compilada.  |
-| **Sprint 3** | Treino &amp; Calibração  | Execução do ciclo de 100 épocas e monitoramento das curvas de *loss*.         | Script de treinamento validado. |
-| **Sprint 4** | Inferência &amp; Deploy  | Implementação do pipeline de predição em tempo real e escrita do `README.md`. | Repositório público no GitHub.  |
+| Métrica | O que mede |
+| --- | --- |
+| Taxa de conclusão de trilha | Qualidade da recomendação |
+| Conversão de plano no onboarding | Impacto comercial |
+| Acurácia do classificador na base de teste | Qualidade do modelo de ML |
+| Custo médio por trilha | Eficiência da LLM |
+| Taxa de módulos inválidos devolvidos pela LLM | Efetividade dos limites |
 
 ---
 
-## 🚀 Como Executar o Projeto
+## 🛠️ Tecnologias
+
+* **Linguagem:** JavaScript (Node.js, ES Modules)
+* **Machine Learning:** `@tensorflow/tfjs-node`
+* **LLM:** Claude API (`@anthropic-ai/sdk`) com saída estruturada
+* **API:** Fastify ou Express
+* **Validação:** Zod
+* **Persistência:** SQLite (desenvolvimento) → PostgreSQL (produção)
+* **Infraestrutura:** Docker
+* **Controle de versão:** Git & GitHub
+
+---
+
+## 🚦 Status do projeto
+
+| Componente | Status |
+| --- | --- |
+| Pré-processamento (Min-Max, One-Hot) | ✅ Implementado |
+| Classificador TF.js (ReLU + Softmax) | ✅ Implementado |
+| Treino, salvamento e carregamento do modelo | ✅ Implementado |
+| API de ingestão e validação | 🔜 Planejado |
+| Geração de trilha com LLM | 🔜 Planejado |
+| Coleta de feedback | 🔜 Planejado |
+| Fine-tuning com promoção de versões | 🔜 Planejado |
+| Docker e deploy | 🔜 Planejado |
+
+> A prova de conceito do classificador (pipeline de ML isolado) está preservada no branch [`conceito/sistema-recomendacao-ml`](https://github.com/RyanZine/Classifier/tree/conceito/sistema-recomendacao-ml).
+
+---
+
+## 📅 Roadmap
+
+| Sprint | Fase | Entregável |
+| --- | --- | --- |
+| **Sprint 1** | API e ingestão | Servidor HTTP, rota de cadastro, validação e persistência |
+| **Sprint 2** | Classificação em serviço | Modelo carregado na inicialização; rota de classificação |
+| **Sprint 3** | LLM e trilhas | Catálogo, prompt, saída estruturada, validação e fallback |
+| **Sprint 4** | Aprendizado contínuo | Feedback, `npm run retrain`, avaliação e versionamento |
+| **Sprint 5** | Produto | Docker, documentação da API e demonstração pública |
+
+---
+
+## 🚀 Como executar (estado atual)
 
 ### Pré-requisitos
 
-* **Node.js** v20.x ou superior.
-* Gerenciador de pacotes **npm**.
+* Node.js 20 ou 22 LTS
+* npm
 
-### Passo a Passo
+### Passo a passo
 
-1. **Clonar o repositório:**  
-```  
-git clone https://github.com/seu-usuario/node-tfjs-student-classifier.git  
-```
-2. **Acessar a pasta do projeto:**  
-```  
-cd node-tfjs-student-classifier  
-```
-3. **Instalar as dependências:**  
-```  
-npm install  
-```
-4. **Executar o treinamento e a predição:**  
-```  
-node index.js  
+```bash
+git clone https://github.com/RyanZine/Classifier.git
+cd Classifier/classifier
+npm install
+npm start      # treina (ou carrega o modelo salvo) e faz uma previsão de exemplo
+npm test       # testa pré-processamento, tensores, treino e previsão
 ```
 
 ---
 
 ## 👤 Autor
 
-**Seu Nome**
+**Ryan Zinedine**
 
-* **GitHub:** [@RyanZine](https://www.google.com/url?sa=E&amp;q=https%3A%2F%2Fgithub.com%2Fseu-usuario)
-* **LinkedIn:** [Ryan Zinedine](https://www.google.com/url?sa=E&amp;q=https%3A%2F%2Flinkedin.com%2Fin%2Fseu-perfil)
-* **Cargo/Objetivo:** Desenvolvedor front-end junior
+* **GitHub:** [@RyanZine](https://github.com/RyanZine)
+* **LinkedIn:** [Ryan Zinedine](https://linkedin.com/in/seu-perfil)
