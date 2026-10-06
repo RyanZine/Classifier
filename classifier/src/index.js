@@ -1,7 +1,8 @@
-import * as tf from '@tensorflow/tfjs-node';
+import tf from './tf.js';
 import {buildInputVector} from './processing.js';
 import {getTrainingTensors} from './data.js';
 import {createModel} from './model.js';
+import fs from 'fs';
 
 async function main() {
     console.log('Iniciando classificador de alunos...');
@@ -10,24 +11,35 @@ async function main() {
     console.log('Carregando e vetorizando os dados...');
     const {xs, ys} = getTrainingTensors();
 
-    //construlçao da rede neural
-    console.log('Criando e compilando o modelo...');
-    const model = createModel();
+    //carrega o modelo salvo ou treina um novo
+    let model;
 
-    //treinamento do modelo
-    console.log('Treinando o modelo...');
-    await model.fit(xs, ys, {
-        epochs: 100,
-        shuffle: true,
-        callbacks: {
-            onEpochEnd: (epoch,logs) => {
-                if ((epoch + 1) % 25 === 0) {
-                    console.log( `Época ${(epoch +1).toString().padStart(3, ' ')}/100 | 
-                    Loss: ${(logs.loss.toFixed(4))} | Acurácia: ${(logs.acc * 100).toFixed(1)}%`);
+    if (fs.existsSync('./modelo_salvo/model.json')) {
+        console.log('Carregando modelo salvo do disco...');
+        model = await tf.loadLayersModel('file://./modelo_salvo/model.json');
+    } else {
+        //construção da rede neural
+        console.log('Criando e compilando o modelo...');
+        model = createModel();
+
+        //treinamento do modelo
+        console.log('Treinando o modelo...');
+        await model.fit(xs, ys, {
+            epochs: 100,
+            shuffle: true,
+            verbose: 0,
+            callbacks: {
+                onEpochEnd: (epoch, logs) => {
+                    if ((epoch + 1) % 25 === 0) {
+                        console.log(`Época ${(epoch + 1).toString().padStart(3, ' ')}/100 | Loss: ${logs.loss.toFixed(4)} | Acurácia: ${(logs.acc * 100).toFixed(1)}%`);
+                    }
                 }
             }
-        }
-    });
+        });
+
+        await model.save('file://./modelo_salvo');
+        console.log('Modelo salvo em disco com sucesso!');
+    }
 
     //inferencia em tempo real
     console.log('Executando inferência para Novo Aluno...');
@@ -59,3 +71,4 @@ async function main() {
 }
 
 main().catch(err => console.error(err));
+

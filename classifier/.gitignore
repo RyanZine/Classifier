@@ -1,0 +1,9 @@
+#dependências
+node_modules/
+
+#Modelo gerado/treinado
+modelo_salvo/
+
+#Arquivos de sistema e ambiente
+.env
+.DS_Store
