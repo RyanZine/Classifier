@@ -75,15 +75,16 @@ Oferecer a **EdTechs, bootcamps e áreas de T&D corporativo** um motor de recome
 
 Endpoint que recebe o perfil do aluno e valida cada campo antes de qualquer processamento. Valores fora do domínio (ex.: senioridade desconhecida, horas negativas) são rejeitados com erro claro, em vez de gerar uma previsão silenciosamente errada.
 
-Atributos previstos:
+Atributos do aluno:
 
-| Atributo | Tipo | Exemplo |
-| --- | --- | --- |
-| `horasEstudo` | numérico (h/semana) | `8` |
-| `senioridade` | categórico | `Iniciante`, `Pleno`, `Senior` |
-| `objetivo` | categórico | `Front-end`, `Back-end`, `Dados`, `IA` |
-| `conhecimentosPrevios` | lista | `["JavaScript", "Git"]` |
-| `prazoMeses` | numérico | `6` |
+| Atributo | Tipo | Exemplo | Usado por | Status |
+| --- | --- | --- | --- | --- |
+| `horasEstudo` | numérico (h/semana) | `8` | classificador e LLM | ✅ |
+| `senioridade` | categórico | `Iniciante`, `Pleno`, `Senior` | classificador e LLM | ✅ |
+| `linguagem` | categórico | `python`, `javascript` | filtro do catálogo | ✅ |
+| `area` | categórico | `ia-ml`, `dados`, `web-frontend` | filtro do catálogo | ✅ |
+| `conhecimentosPrevios` | lista | `["JavaScript", "Git"]` | LLM | 🔜 |
+| `prazoMeses` | numérico | `6` | LLM | 🔜 |
 
 ### 2. Pré-processamento
 
@@ -105,38 +106,52 @@ A saída é o **perfil do aluno com o grau de confiança** (ex.: `Pro — 94%`),
 
 ### 4. LLM limitada → trilha de estudos
 
+#### Catálogo
+
+O catálogo (`src/catalogo.js`) é a lista fechada de módulos da plataforma:
+
+* **2 linguagens:** Python e JavaScript.
+* **21 áreas:** 11 de Python (IA e ML, dados, web, automação, DevOps, segurança, finanças, computação científica, IoT, desktop, jogos) e 10 de JavaScript (frontend, backend, mobile, desktop, jogos, IA e ML, automação, IoT, extensões e CLI, Web3).
+* **69 módulos:** uma base comum por linguagem, mais 3 módulos por área (Iniciante → Pleno → Senior), cada um com carga horária e pré-requisitos.
+
+Para cada aluno, o catálogo é **filtrado** antes de chegar à LLM: entram só a base da linguagem, a área escolhida e os pré-requisitos que estejam em outras áreas. Em vez de 69 módulos, a LLM recebe de 6 a 8, o que reduz custo e chance de erro.
+
+#### Geração
+
 A LLM **não decide o perfil** e **não conversa livremente**. Ela recebe:
 
-* o perfil e a confiança calculados pelo classificador;
-* os dados do aluno (sem dados pessoais identificáveis);
-* o **catálogo fechado** de módulos da plataforma;
+* o plano e a confiança calculados pelo classificador;
+* horas de estudo e senioridade do aluno (sem dados pessoais identificáveis);
+* o **catálogo filtrado**;
 
-e devolve uma trilha em **JSON validado por schema**, por exemplo:
+e devolve uma trilha em **JSON definido por schema**, por exemplo:
 
 ```json
 {
-  "perfil": "Pro",
-  "duracaoSemanas": 12,
+  "resumo": "Trilha focada em IA para um desenvolvedor Pleno, respeitando 8h semanais.",
   "etapas": [
     {
-      "ordem": 1,
-      "moduloId": "node-fundamentos",
-      "justificativa": "Base necessária para os módulos de API, considerando 8h/semana disponíveis."
+      "moduloId": "py-ml-fundamentos",
+      "justificativa": "Introduz os conceitos de aprendizado de máquina com Scikit-learn."
     }
   ]
 }
 ```
 
-**Por que "limitada":**
+O sistema completa cada etapa com os dados oficiais do catálogo (título, nível, horas). A LLM fornece apenas a escolha, a ordem e a justificativa.
 
-| Limite | Motivo |
-| --- | --- |
-| Só pode usar módulos do catálogo (IDs validados após a resposta) | Evita recomendar cursos inexistentes (alucinação) |
-| Saída estruturada com schema | Resposta sempre processável pelo sistema |
-| Teto de tokens por requisição | Custo previsível por trilha |
-| Uma geração por aluno (e por atualização de perfil) | Escala sem custo por interação |
-| Sem dados pessoais no prompt | Privacidade e conformidade com a LGPD |
-| Trilha padrão por perfil quando a LLM estiver indisponível | O serviço continua respondendo |
+#### Por que "limitada"
+
+| Limite | Como é aplicado | Motivo |
+| --- | --- | --- |
+| Catálogo fechado e filtrado | Só a base, a área e os pré-requisitos do aluno são enviados | Evita recomendações fora do perfil e reduz tokens |
+| IDs restritos no schema | `enum` com os IDs do catálogo filtrado | A LLM não consegue inventar módulos |
+| Validação após a resposta | Rejeita módulo inexistente, repetido, fora de ordem de pré-requisitos ou trilha vazia | Defesa em camadas: não depende só do provedor |
+| Saída estruturada | `responseMimeType: application/json` + JSON Schema | Resposta sempre processável pelo sistema |
+| Novas tentativas e troca de modelo | *Retry* com *backoff* exponencial em erros 429/500/503; lista de modelos em ordem de preferência | Picos de demanda do provedor não derrubam o serviço |
+| Trilha padrão | Gerada do catálogo, sem LLM, por ordenação topológica dos pré-requisitos | O aluno sempre recebe uma trilha |
+| Sem dados pessoais no prompt | Só horas, senioridade, plano e confiança | Privacidade e conformidade com a LGPD |
+| Uma geração por aluno | A LLM é chamada só ao gerar ou atualizar a trilha | Custo previsível em escala |
 
 ### 5. Feedback
 
@@ -162,39 +177,44 @@ Executado periodicamente (ex.: `npm run retrain`), fora do caminho da requisiç�
 * **RF02 — Pré-processamento:** normalizar e codificar atributos de forma idêntica no treino e na inferência.
 * **RF03 — Classificação:** retornar o perfil do aluno com probabilidade associada.
 * **RF04 — Geração de trilha:** produzir trilha em JSON a partir do perfil e do catálogo, via LLM.
-* **RF05 — Validação da trilha:** descartar ou corrigir etapas com módulos fora do catálogo.
+* **RF05 — Validação da trilha:** descartar trilhas com módulos fora do catálogo, repetidos ou fora da ordem de pré-requisitos.
 * **RF06 — Feedback:** registrar conclusão, abandono e avaliação das trilhas.
 * **RF07 — Fine-tuning:** retreinar o modelo com dados novos e promover versões apenas após avaliação.
-* **RF08 — Fallback:** entregar trilha padrão por perfil quando a LLM não responder.
+* **RF08 — Fallback:** entregar trilha padrão, montada a partir do catálogo, quando a LLM não responder ou a resposta for inválida.
 
 ### Requisitos Não-Funcionais (RNF)
 
 * **RNF01 — Ambiente:** Node.js 20/22 LTS com ES Modules.
 * **RNF02 — Engine de ML:** `@tensorflow/tfjs-node`, inferência local.
 * **RNF03 — Latência:** classificação abaixo de 10 ms após o modelo carregado; o modelo é carregado uma única vez na inicialização.
-* **RNF04 — Custo:** chamada à LLM limitada a uma por geração de trilha, com teto de tokens.
+* **RNF04 — Custo:** uma chamada à LLM por geração de trilha, com o catálogo filtrado para reduzir tokens.
 * **RNF05 — Privacidade:** nenhum dado pessoal identificável enviado à LLM.
 * **RNF06 — Memória:** desalocação explícita de tensores com `.dispose()`.
 * **RNF07 — Reprodutibilidade:** modelo e parâmetros de pré-processamento versionados juntos.
 
 ---
 
-## 💰 Estimativa de custo da LLM
+## 💰 Custo da LLM
 
-Valores ilustrativos, considerando o modelo padrão `claude-opus-5-5` (US$ 4 por milhão de tokens de entrada e US$ 20 por milhão de saída) e uma trilha com ~3.000 tokens de entrada e ~1.500 de saída:
+O protótipo usa a **API da Gemini** em modelos da linha *Flash*, que têm plano gratuito para desenvolvimento.
 
-| Item | Cálculo | Custo aprox. |
-| --- | --- | --- |
-| Entrada | 3.000 × US$ 4 / 1M | US$ 0,012 |
-| Saída | 1.500 × US$ 20 / 1M | US$ 0,030 |
-| **Por trilha gerada** | | **≈ US$ 0,04** |
+O custo de uma trilha em produção segue a fórmula:
 
-Alavancas para reduzir o custo em escala:
+```
+custo por trilha = (tokens de entrada × preço de entrada) + (tokens de saída × preço de saída)
+```
 
-* **Prompt caching** do catálogo e das instruções, que se repetem em toda requisição.
-* **Batch API** (≈ 50% mais barata) para onboarding em massa, quando a trilha não precisa ser instantânea.
-* Ajuste do nível de esforço (`effort`) do modelo conforme a complexidade do catálogo.
-* Modelo configurável por variável de ambiente, para cada cliente escolher o equilíbrio entre custo e qualidade.
+Os preços por milhão de tokens variam por modelo e mudam com o tempo; os valores atuais estão na [página oficial de preços da Gemini API](https://ai.google.dev/gemini-api/docs/pricing).
+
+Alavancas já aplicadas ou previstas para manter o custo baixo:
+
+* **Catálogo filtrado** (aplicado): de 6 a 8 módulos por pedido, em vez dos 69.
+* **Uma geração por aluno** (aplicado): a LLM não é chamada a cada interação.
+* **Modelos *Flash* e *Flash-Lite*** (aplicado): mais rápidos e baratos que os modelos *Pro*.
+* **Cache de contexto** (previsto): instruções e catálogo se repetem em toda requisição.
+* **Processamento em lote** (previsto): para onboarding em massa, quando a trilha não precisa ser instantânea.
+
+> **Privacidade:** no plano gratuito, o Google pode usar os dados enviados para melhorar seus produtos (confira os termos atuais). Por isso o prompt nunca contém dados pessoais do aluno.
 
 ---
 
@@ -221,11 +241,12 @@ Alavancas para reduzir o custo em escala:
 
 * **Linguagem:** JavaScript (Node.js, ES Modules)
 * **Machine Learning:** `@tensorflow/tfjs-node`
-* **LLM:** Claude API (`@anthropic-ai/sdk`) com saída estruturada
-* **API:** Fastify ou Express
-* **Validação:** Zod
-* **Persistência:** SQLite (desenvolvimento) → PostgreSQL (produção)
-* **Infraestrutura:** Docker
+* **LLM:** Google Gemini (`@google/genai`) com saída estruturada em JSON Schema, isolada em `src/llm/gemini.js` para permitir a troca de provedor
+* **Configuração:** variáveis de ambiente lidas nativamente pelo Node (`--env-file`)
+* **API (planejado):** Fastify ou Express
+* **Validação de entrada (planejado):** Zod
+* **Persistência (planejado):** SQLite (desenvolvimento) → PostgreSQL (produção)
+* **Infraestrutura (planejado):** Docker
 * **Controle de versão:** Git & GitHub
 
 ---
@@ -237,13 +258,24 @@ Alavancas para reduzir o custo em escala:
 | Pré-processamento (Min-Max, One-Hot) | ✅ Implementado |
 | Classificador TF.js (ReLU + Softmax) | ✅ Implementado |
 | Treino, salvamento e carregamento do modelo | ✅ Implementado |
+| Catálogo (2 linguagens, 21 áreas, 69 módulos) com filtro por aluno | ✅ Implementado |
+| Geração de trilha com LLM (Gemini, JSON Schema) | ✅ Implementado |
+| Validação da trilha e trilha padrão (fallback) | ✅ Implementado |
+| Novas tentativas e troca automática de modelo | ✅ Implementado |
 | API de ingestão e validação | 🔜 Planejado |
-| Geração de trilha com LLM | 🔜 Planejado |
 | Coleta de feedback | 🔜 Planejado |
 | Fine-tuning com promoção de versões | 🔜 Planejado |
 | Docker e deploy | 🔜 Planejado |
 
 > A prova de conceito do classificador (pipeline de ML isolado) está preservada no branch [`conceito/sistema-recomendacao-ml`](https://github.com/RyanZine/Classifier/tree/conceito/sistema-recomendacao-ml).
+
+### Limitações conhecidas
+
+* **Base de treino mínima:** o classificador é treinado com 6 exemplos, suficientes para demonstrar o pipeline, mas não para generalizar. A acurácia de 100% no treino reflete memorização.
+* **Trilha padrão e senioridade:** a senioridade mede a experiência em programação, não na área escolhida. Um aluno Pleno pode pular o módulo de entrada de uma área nova (ex.: Scikit-learn em IA). Melhoria prevista: dispensar pelo nível apenas os módulos da base.
+* **Validação estrutural:** o sistema confere módulos, ordem e repetição, mas não a coerência do texto das justificativas geradas pela LLM.
+* **Modelo por apelido:** `gemini-flash-latest` pode apontar para versões diferentes ao longo do tempo. Em produção, o modelo deve ser fixado por versão.
+* **Compatibilidade do TensorFlow.js:** `@tensorflow/tfjs-node` 4.22 exige um ajuste (`src/tf.js`) para rodar no Node 23+ e, no Windows, a cópia manual da `tensorflow.dll` após a instalação.
 
 ---
 
@@ -253,7 +285,7 @@ Alavancas para reduzir o custo em escala:
 | --- | --- | --- |
 | **Sprint 1** | API e ingestão | Servidor HTTP, rota de cadastro, validação e persistência |
 | **Sprint 2** | Classificação em serviço | Modelo carregado na inicialização; rota de classificação |
-| **Sprint 3** | LLM e trilhas | Catálogo, prompt, saída estruturada, validação e fallback |
+| **Sprint 3** ✅ | LLM e trilhas | Catálogo, prompt, saída estruturada, validação e fallback (protótipo concluído) |
 | **Sprint 4** | Aprendizado contínuo | Feedback, `npm run retrain`, avaliação e versionamento |
 | **Sprint 5** | Produto | Docker, documentação da API e demonstração pública |
 
@@ -265,6 +297,7 @@ Alavancas para reduzir o custo em escala:
 
 * Node.js 20 ou 22 LTS
 * npm
+* Uma chave da API da Gemini, gerada gratuitamente no [Google AI Studio](https://aistudio.google.com) (opcional: sem ela, o sistema usa a trilha padrão)
 
 ### Passo a passo
 
@@ -272,9 +305,23 @@ Alavancas para reduzir o custo em escala:
 git clone https://github.com/RyanZine/Classifier.git
 cd Classifier/classifier
 npm install
-npm start      # treina (ou carrega o modelo salvo) e faz uma previsão de exemplo
-npm test       # testa pré-processamento, tensores, treino e previsão
 ```
+
+Crie um arquivo `.env` na pasta `classifier`, a partir do modelo `.env.example`:
+
+```
+GEMINI_API_KEY=sua_chave_aqui
+```
+
+Depois:
+
+```bash
+npm start                  # classifica um aluno de exemplo e gera a trilha de estudos
+npm test                   # testa pré-processamento, tensores, treino e previsão
+node teste-validacao.js    # testa a validação e as trilhas padrão (sem chamar a API)
+```
+
+> O arquivo `.env` contém a chave da API e **nunca** deve ser enviado ao repositório (já está no `.gitignore`).
 
 ---
 
