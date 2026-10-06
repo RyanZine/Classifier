@@ -1,0 +1,23 @@
+{
+    "name": "node-tfjs-classifier",
+    "version": "1.0.0",
+    "description": "Microsserviço de classificação de perfis de alunos com TensorFlow.js",
+    "main": "src/index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/index.js",
+        "test": "node teste.js"
+    },
+    "keywords": [
+        "nodejs",
+        "tensorflowjs",
+        "machine-learning",
+        "deep-learning",
+        "classifier"
+    ],
+    "author": "Ryan Zinedine",
+    "license": "MIT",
+    "dependencies": {
+        "@tensorflow/tfjs-node": "^4.22.0"
+    }
+}
