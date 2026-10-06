@@ -3,6 +3,7 @@ import {buildInputVector} from './processing.js';
 import {getTrainingTensors} from './data.js';
 import {createModel} from './model.js';
 import fs from 'fs';
+import { gerarTrilha } from './llm/trilha.js';
 
 async function main() {
     console.log('Iniciando classificador de alunos...');
@@ -43,7 +44,7 @@ async function main() {
 
     //inferencia em tempo real
     console.log('Executando inferência para Novo Aluno...');
-    const novoAluno = {horasEstudo: 8.0, senioridade: 'Pleno'};
+    const novoAluno = {horasEstudo: 8.0, senioridade: 'Pleno', linguagem: 'python', area: 'ia-ml'};
     const vetorEntrada = buildInputVector(novoAluno);
 
     //conversor para tensor 2d e predição
@@ -61,6 +62,29 @@ async function main() {
 
     const planoRecomendado = probabilidades[1] > probabilidades[0] ? 'Plano Pro' : 'Plano Básico';
     console.log(`Recomendação final: ${planoRecomendado}`);
+
+    //geração da trilha de estudos
+    console.log('Gerando trilha de estudos...');
+
+    const plano = probabilidades[1] > probabilidades[0] ? 'Pro' : 'Basic';
+    const confianca = Math.max(probabilidades[0], probabilidades[1]);
+
+    const trilha = await gerarTrilha({
+        aluno: {
+            horasEstudoSemana: novoAluno.horasEstudo,
+            senioridade: novoAluno.senioridade,
+            plano,
+            confianca: `${(confianca * 100).toFixed(1)}%`
+        },
+        linguagem: novoAluno.linguagem,
+        area: novoAluno.area
+    });
+
+    console.log(`\nTrilha (${trilha.origem === 'llm' ? 'gerada pela IA' : 'padrão'}): ${trilha.resumo}`);
+    trilha.etapas.forEach((etapa, i) => {
+        console.log(`  ${i + 1}. ${etapa.titulo} (${etapa.nivel}, ${etapa.horas}h)`);
+        console.log(`     ${etapa.justificativa}`);
+    });
 
     //limpeza de memória
     xs.dispose();
