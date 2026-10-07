@@ -73,7 +73,7 @@ Oferecer a **EdTechs, bootcamps e áreas de T&D corporativo** um motor de recome
 
 ### 1. Ingestão de dados
 
-Endpoint que recebe o perfil do aluno e valida cada campo antes de qualquer processamento. Valores fora do domínio (ex.: senioridade desconhecida, horas negativas) são rejeitados com erro claro, em vez de gerar uma previsão silenciosamente errada.
+O aluno preenche um formulário na interface web, que envia os dados ao endpoint `POST /recomendar` (servidor Fastify). Cada campo é validado por **JSON Schema** antes de qualquer processamento: valores fora do domínio (ex.: senioridade desconhecida, horas fora do intervalo) são rejeitados com erro claro, em vez de gerar uma previsão silenciosamente errada. Campos não previstos no schema (como nome ou e-mail) são descartados automaticamente e nunca chegam ao modelo nem à LLM.
 
 Atributos do aluno:
 
@@ -148,7 +148,8 @@ O sistema completa cada etapa com os dados oficiais do catálogo (título, níve
 | IDs restritos no schema | `enum` com os IDs do catálogo filtrado | A LLM não consegue inventar módulos |
 | Validação após a resposta | Rejeita módulo inexistente, repetido, fora de ordem de pré-requisitos ou trilha vazia | Defesa em camadas: não depende só do provedor |
 | Saída estruturada | `responseMimeType: application/json` + JSON Schema | Resposta sempre processável pelo sistema |
-| Novas tentativas e troca de modelo | *Retry* com *backoff* exponencial em erros 429/500/503; lista de modelos em ordem de preferência | Picos de demanda do provedor não derrubam o serviço |
+| Novas tentativas e troca de modelo | *Retry* com *backoff* exponencial em erros 429/500/503/504 e em estouro de tempo; lista de modelos em ordem de preferência | Picos de demanda do provedor não derrubam o serviço |
+| Limite de tempo | 15 s por chamada e 30 s no total; depois disso, trilha padrão | O aluno nunca fica esperando indefinidamente |
 | Trilha padrão | Gerada do catálogo, sem LLM, por ordenação topológica dos pré-requisitos | O aluno sempre recebe uma trilha |
 | Sem dados pessoais no prompt | Só horas, senioridade, plano e confiança | Privacidade e conformidade com a LGPD |
 | Uma geração por aluno | A LLM é chamada só ao gerar ou atualizar a trilha | Custo previsível em escala |
@@ -191,6 +192,31 @@ Executado periodicamente (ex.: `npm run retrain`), fora do caminho da requisiç�
 * **RNF05 — Privacidade:** nenhum dado pessoal identificável enviado à LLM.
 * **RNF06 — Memória:** desalocação explícita de tensores com `.dispose()`.
 * **RNF07 — Reprodutibilidade:** modelo e parâmetros de pré-processamento versionados juntos.
+* **RNF08 — Tempo de resposta:** a geração da trilha tem prazo máximo de 30 s; esgotado o prazo, o aluno recebe a trilha padrão.
+* **RNF09 — Segurança da interface:** todo texto vindo da LLM é exibido como texto puro (`textContent`), nunca interpretado como HTML, prevenindo XSS.
+
+---
+
+## 🖥️ Interface web e API
+
+O servidor Fastify (`src/server.js`) carrega o modelo uma única vez na inicialização e expõe:
+
+| Método | Rota | Função |
+| --- | --- | --- |
+| `GET` | `/` | Interface web (`public/`) |
+| `GET` | `/areas` | Linguagens e áreas do catálogo, usadas para montar o formulário |
+| `POST` | `/recomendar` | Recebe o perfil do aluno e devolve plano, probabilidades e trilha |
+
+Exemplo de pedido:
+
+```json
+{ "horasEstudo": 8, "senioridade": "Pleno", "linguagem": "python", "area": "ia-ml" }
+```
+
+A interface (HTML, CSS e JavaScript puros) mostra as duas etapas de IA separadamente:
+
+1. **Plano recomendado (Machine Learning):** o plano escolhido e as probabilidades de cada classe, em barras.
+2. **Trilha de estudos (LLM):** os módulos em ordem, com nível, carga horária, justificativa, total de horas e estimativa de semanas. Um selo indica se a trilha foi **gerada pela IA** ou é a **trilha padrão**.
 
 ---
 
@@ -243,8 +269,9 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 * **Machine Learning:** `@tensorflow/tfjs-node`
 * **LLM:** Google Gemini (`@google/genai`) com saída estruturada em JSON Schema, isolada em `src/llm/gemini.js` para permitir a troca de provedor
 * **Configuração:** variáveis de ambiente lidas nativamente pelo Node (`--env-file`)
-* **API (planejado):** Fastify ou Express
-* **Validação de entrada (planejado):** Zod
+* **API:** Fastify, com `@fastify/static` para servir a interface
+* **Validação de entrada:** JSON Schema nativo do Fastify (o mesmo padrão usado para definir a saída da LLM)
+* **Interface:** HTML, CSS e JavaScript puros, sem build
 * **Persistência (planejado):** SQLite (desenvolvimento) → PostgreSQL (produção)
 * **Infraestrutura (planejado):** Docker
 * **Controle de versão:** Git & GitHub
@@ -261,8 +288,10 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 | Catálogo (2 linguagens, 21 áreas, 69 módulos) com filtro por aluno | ✅ Implementado |
 | Geração de trilha com LLM (Gemini, JSON Schema) | ✅ Implementado |
 | Validação da trilha e trilha padrão (fallback) | ✅ Implementado |
-| Novas tentativas e troca automática de modelo | ✅ Implementado |
-| API de ingestão e validação | 🔜 Planejado |
+| Novas tentativas, troca automática de modelo e limite de tempo | ✅ Implementado |
+| Servidor Fastify com validação por JSON Schema | ✅ Implementado |
+| Interface web (formulário, probabilidades e trilha) | ✅ Implementado |
+| Persistência dos alunos e das trilhas | 🔜 Planejado |
 | Coleta de feedback | 🔜 Planejado |
 | Fine-tuning com promoção de versões | 🔜 Planejado |
 | Docker e deploy | 🔜 Planejado |
@@ -274,6 +303,8 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 * **Base de treino mínima:** o classificador é treinado com 6 exemplos, suficientes para demonstrar o pipeline, mas não para generalizar. A acurácia de 100% no treino reflete memorização.
 * **Trilha padrão e senioridade:** a senioridade mede a experiência em programação, não na área escolhida. Um aluno Pleno pode pular o módulo de entrada de uma área nova (ex.: Scikit-learn em IA). Melhoria prevista: dispensar pelo nível apenas os módulos da base.
 * **Validação estrutural:** o sistema confere módulos, ordem e repetição, mas não a coerência do texto das justificativas geradas pela LLM.
+* **Latência dependente do provedor:** em horários de pico, a Gemini responde com sobrecarga (erros 429/503), e a trilha pode levar de 20 a 30 segundos ou cair na trilha padrão.
+* **Domínio de treino:** o modelo conhece no máximo 10 h semanais; valores maiores são tratados como 10 h na classificação.
 * **Modelo por apelido:** `gemini-flash-latest` pode apontar para versões diferentes ao longo do tempo. Em produção, o modelo deve ser fixado por versão.
 * **Compatibilidade do TensorFlow.js:** `@tensorflow/tfjs-node` 4.22 exige um ajuste (`src/tf.js`) para rodar no Node 23+ e, no Windows, a cópia manual da `tensorflow.dll` após a instalação.
 
@@ -283,8 +314,8 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 
 | Sprint | Fase | Entregável |
 | --- | --- | --- |
-| **Sprint 1** | API e ingestão | Servidor HTTP, rota de cadastro, validação e persistência |
-| **Sprint 2** | Classificação em serviço | Modelo carregado na inicialização; rota de classificação |
+| **Sprint 1** 🟡 | API e ingestão | Servidor HTTP, interface e validação ✅; persistência pendente |
+| **Sprint 2** ✅ | Classificação em serviço | Modelo carregado na inicialização; rota de recomendação |
 | **Sprint 3** ✅ | LLM e trilhas | Catálogo, prompt, saída estruturada, validação e fallback (protótipo concluído) |
 | **Sprint 4** | Aprendizado contínuo | Feedback, `npm run retrain`, avaliação e versionamento |
 | **Sprint 5** | Produto | Docker, documentação da API e demonstração pública |
@@ -311,12 +342,20 @@ Crie um arquivo `.env` na pasta `classifier`, a partir do modelo `.env.example`:
 
 ```
 GEMINI_API_KEY=sua_chave_aqui
+# opcional: modelos em ordem de preferência
+GEMINI_MODELOS=gemini-3.5-flash-lite,gemini-flash-latest
 ```
 
-Depois:
+Inicie o servidor e abra **http://localhost:3000** no navegador:
 
 ```bash
-npm start                  # classifica um aluno de exemplo e gera a trilha de estudos
+npm run server
+```
+
+Outros comandos:
+
+```bash
+npm start                  # versão de terminal: classifica um aluno de exemplo e gera a trilha
 npm test                   # testa pré-processamento, tensores, treino e previsão
 node teste-validacao.js    # testa a validação e as trilhas padrão (sem chamar a API)
 ```
