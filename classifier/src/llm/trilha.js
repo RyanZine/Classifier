@@ -8,7 +8,8 @@ Use SOMENTE módulos do catálogo fornecido.
 Respeite os pré-requisitos: um módulo só aparece depois dos seus pré-requisitos.
 O aluno pode pular pré-requisitos de nível abaixo do dele.
 Ajuste a quantidade de módulos às horas semanais do aluno.
-Responda em português do Brasil, com justificativas de no máximo 2 frases.`;
+Responda em português do Brasil, com justificativas de no máximo 2 frases.
+Plano Basic: trilha enxuta, só o essencial. Plano Pro: trilha completa, até o nível avançado da área.`;
 
 function criarSchema(modulos) {
     return {

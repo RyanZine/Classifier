@@ -4,7 +4,10 @@ const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const ERROS_TEMPORARIOS = [429, 500, 503];
 
 //modelos em ordem de preferência (pode ser trocado no .env, separados por vírgula)
-const MODELOS = (process.env.GEMINI_MODELOS || 'gemini-flash-latest,gemini-3.5-flash-lite').split(',');
+const MODELOS = (process.env.GEMINI_MODELOS || 'gemini-flash-latest,gemini-3.5-flash-lite')
+    .split(',')
+    .map(modelo => modelo.trim())   //remove espaços: "a, b" → ["a", "b"]
+    .filter(Boolean);               //ignora itens vazios: "a,,b" ou vírgula no final
 
 //o cliente é criado só na primeira chamada
 let ai;
