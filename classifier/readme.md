@@ -13,7 +13,7 @@ O **Classifier** é uma plataforma de recomendação educacional que combina doi
 
 ---
 
-## 🎯 Objetivos
+## 🎯 Objetivo
 
 ### Objetivo Técnico
 
@@ -25,22 +25,13 @@ Demonstrar um sistema de recomendação de ponta a ponta no ecossistema JavaScri
 * **Ciclo de aprendizado contínuo:** *fine-tuning* periódico com dados novos, avaliação em base de teste e promoção controlada de versões do modelo.
 * Integração com LLM usando **saída estruturada (JSON)**, catálogo fechado e limites de custo.
 
-### Objetivo Comercial
-
-Oferecer a **EdTechs, bootcamps e áreas de T&D corporativo** um motor de recomendação *plug-and-play* que:
-
-* **Personaliza o onboarding** de cada aluno no momento do cadastro, aumentando a conversão para o plano adequado.
-* **Aumenta a taxa de conclusão** ao entregar uma trilha coerente com o nível e a disponibilidade reais da pessoa.
-* **Escala com custo controlado:** a classificação roda localmente em milissegundos e sem custo por requisição; a LLM é chamada **uma vez por trilha gerada**, não a cada interação.
-* **Melhora sozinho com o uso:** cada aluno que conclui (ou abandona) uma trilha vira um novo exemplo de treino.
-
 ---
 
 ## 👥 Público-Alvo
 
 | Segmento | Dor | Como o Classifier resolve |
 | --- | --- | --- |
-| **EdTechs e plataformas de cursos** | Alunos perdidos em catálogos grandes; baixa conclusão | Trilha personalizada já no cadastro |
+| **EdTechs e plataformas de cursos** | Alunos perdidos em catálogos grandes; baixa conclusão | Trilha personalizada a partir do perfil do aluno |
 | **Bootcamps** | Turmas heterogêneas; nivelamento manual | Classificação automática de nível + trilha de nivelamento |
 | **T&D corporativo / RH** | Planos de desenvolvimento genéricos | Trilhas por cargo, senioridade e disponibilidade do colaborador |
 | **Recrutadores e lideranças técnicas** | Avaliar domínio prático de IA aplicada | Projeto completo: ML próprio + LLM + MLOps em Node.js |
@@ -242,7 +233,7 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 * **Uma geração por aluno** (aplicado): a LLM não é chamada a cada interação.
 * **Modelos *Flash* e *Flash-Lite*** (aplicado): mais rápidos e baratos que os modelos *Pro*.
 * **Cache de contexto** (previsto): instruções e catálogo se repetem em toda requisição.
-* **Processamento em lote** (previsto): para onboarding em massa, quando a trilha não precisa ser instantânea.
+* **Processamento em lote** (previsto): para gerar trilhas de muitos alunos de uma vez, quando a resposta não precisa ser instantânea.
 
 > **Privacidade:** no plano gratuito, o Google pode usar os dados enviados para melhorar seus produtos (confira os termos atuais). Por isso o prompt nunca contém dados pessoais do aluno.
 
@@ -260,7 +251,7 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 | Métrica | O que mede |
 | --- | --- |
 | Taxa de conclusão de trilha | Qualidade da recomendação |
-| Conversão de plano no onboarding | Impacto comercial |
+| Plano recomendado × plano escolhido pelo aluno | Impacto comercial |
 | Acurácia do classificador na base de teste | Qualidade do modelo de ML |
 | Custo médio por trilha | Eficiência da LLM |
 | Taxa de módulos inválidos devolvidos pela LLM | Efetividade dos limites |
@@ -359,10 +350,21 @@ npm run server
 Outros comandos:
 
 ```bash
-npm start                  # versão de terminal: classifica um aluno de exemplo e gera a trilha
-npm test                   # testa pré-processamento, tensores, treino e previsão
-node teste-validacao.js    # testa a validação e as trilhas padrão (sem chamar a API)
+npm start    # versão de terminal: classifica um aluno de exemplo e gera a trilha
+npm test     # roda os testes automatizados (sem chamar a API da LLM)
 ```
+
+### Testes
+
+Os testes ficam em `testes/` e usam o executor nativo do Node (`node:test`):
+
+| Arquivo | O que garante |
+| --- | --- |
+| `processamento.test.js` | normalização, *one-hot* e vetor de entrada |
+| `modelo.test.js` | formato dos tensores, estrutura da rede, treino e separação entre Basic e Pro |
+| `catalogo.test.js` | ids únicos, áreas e níveis válidos, pré-requisitos existentes e filtro por aluno |
+| `trilha.test.js` | rejeição de respostas inválidas da LLM e trilha padrão válida nas 63 combinações |
+| `simulador.test.js` | cópias usadas pelo simulador da landing page (`docs/`) iguais ao sistema |
 
 > O arquivo `.env` contém a chave da API e **nunca** deve ser enviado ao repositório (já está no `.gitignore`).
 

@@ -1,7 +1,7 @@
 //Catálogo fechado de módulos da plataforma.
 //A LLM só pode montar trilhas com os IDs listados aqui.
 
-//áreas disponíveis por linguagem (o aluno escolhe uma no cadastro)
+//áreas disponíveis por linguagem (o aluno escolhe uma no formulário)
 export const areas = {
     python: {
         'base':          'Fundamentos de Python',
