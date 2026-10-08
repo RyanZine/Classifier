@@ -291,7 +291,7 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 | Fine-tuning com promoção de versões | 🔜 Planejado |
 | Docker e deploy | 🔜 Planejado |
 
-> A prova de conceito do classificador (pipeline de ML isolado) está preservada no branch [`conceito/sistema-recomendacao-ml`](https://github.com/RyanZine/Classifier/tree/conceito/sistema-recomendacao-ml).
+> A prova de conceito do classificador (pipeline de ML isolado) está preservada no branch [`conceito/sistema-recomendacao-ml`](https://github.com/RyanZine/Projects/tree/conceito/sistema-recomendacao-ml).
 
 ### Limitações conhecidas
 
@@ -328,8 +328,8 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 ### Passo a passo
 
 ```bash
-git clone https://github.com/RyanZine/Classifier.git
-cd Classifier/classifier
+git clone https://github.com/RyanZine/Projects.git
+cd Projects/classifier
 npm install
 ```
 
