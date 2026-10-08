@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador | Classifier</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="simulador.css">
+</head>
+<body>
+    <main>
+        <a class="voltar" href="index.html">
+            <span class="voltar-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            Voltar para a apresentação
+        </a>
+
+        <header>
+            <h1>Classifier - Trilha de Estudo com IA</h1>
+            <p>Um modelo de Machine Learning recomenda o plano. Uma LLM monta a trilha a partir do catálogo.</p>
+        </header>
+
+        <p class="aviso">
+            <strong>Simulação no navegador.</strong>
+            O classificador é o mesmo modelo treinado do sistema real e roda aqui, no seu navegador.
+            A trilha é montada pelo algoritmo de trilha padrão a partir do catálogo.
+            Na versão completa, ela é gerada pela LLM (Gemini) no servidor do projeto.
+        </p>
+
+        <form id="formulario" class="card">
+            <label>Horas de estudo por semana
+                <input type="number" id="horas" min="1" max="40" step="0.5" value="8" required>
+            </label>
+            <label>Senioridade
+                <select id="senioridade">
+                    <option>Iniciante</option>
+                    <option selected>Pleno</option>
+                    <option>Senior</option>
+                </select>
+            </label>
+            <label>Linguagem
+                <select id="linguagem"></select>
+            </label>
+            <label>Área
+                <select id="area"></select>
+            </label>
+            <button type="submit" id="botao" disabled>Carregando o modelo...</button>
+        </form>
+
+        <p id="mensagem" class="mensagem" hidden></p>
+
+        <section id="resultado" hidden>
+            <div class="card">
+                <h2>1. Plano recomendado <span class="etiqueta">Machine Learning</span></h2>
+                <p class="plano">Plano <strong id="plano"></strong></p>
+                <div class="barra">
+                    <span>Basic</span>
+                    <div class="trilho"><div id="barra-basic" class="preenchimento"></div></div>
+                    <span id="valor-basic"></span>
+                </div>
+                <div class="barra">
+                    <span>Pro</span>
+                    <div class="trilho"><div id="barra-pro" class="preenchimento"></div></div>
+                    <span id="valor-pro"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>2. Trilha de estudos <span id="origem" class="etiqueta"></span></h2>
+                <p id="resumo"></p>
+                <p id="total" class="total"></p>
+                <ol id="etapas" class="etapas"></ol>
+            </div>
+        </section>
+    </main>
+
+    <!-- TensorFlow.js para navegador: a mesma versão do sistema (4.22) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script type="module" src="simulador.js"></script>
+</body>
+</html>

@@ -1,0 +1,495 @@
+/* =====================================================
+   Neumorfismo claro com destaques em cor sólida.
+   Azul = Machine Learning e estrutura | Verde = LLM e trilha
+   ===================================================== */
+
+:root {
+    /* superfície: branco levemente azulado (o branco puro vira a luz) */
+    --superficie: #e9eff6;
+
+    /* as duas sombras do relevo (luz vindo de cima, à esquerda) */
+    --sombra-escura: #c4cdd9;
+    --sombra-clara: #ffffff;
+
+    --elevado: 8px 8px 18px var(--sombra-escura), -8px -8px 18px var(--sombra-clara);
+    --elevado-leve: 4px 4px 10px var(--sombra-escura), -4px -4px 10px var(--sombra-clara);
+    --afundado: inset 5px 5px 10px var(--sombra-escura), inset -5px -5px 10px var(--sombra-clara);
+    --afundado-leve: inset 3px 3px 6px var(--sombra-escura), inset -3px -3px 6px var(--sombra-clara);
+
+    /* azul: machine learning */
+    --azul: #1d4ed8;
+    --azul-claro: #3b82f6;
+
+    /* verde: LLM e trilha */
+    --verde: #047857;
+    --verde-claro: #10b981;
+
+    /* o degradê da marca: as duas IAs juntas */
+    --degrade: linear-gradient(120deg, var(--azul) 0%, #0e7490 50%, var(--verde-claro) 100%);
+
+    --texto: #1e293b;
+    --texto-suave: #5b6b80;
+    --erro: #c81e1e;
+}
+
+/* o atributo hidden sempre esconde, mesmo com display definido abaixo */
+[hidden] { display: none !important; }
+
+* { box-sizing: border-box; }
+
+/* fundo com brilhos suaves de azul e verde atrás do título */
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--texto);
+    line-height: 1.5;
+    background-color: var(--superficie);
+    background-image:
+        radial-gradient(circle at 15% 0%, rgba(59, 130, 246, 0.22), transparent 40%),
+        radial-gradient(circle at 85% 8%, rgba(16, 185, 129, 0.2), transparent 40%);
+    background-repeat: no-repeat;
+}
+
+main { max-width: 780px; margin: 0 auto; padding: 56px 20px 72px; }
+
+/* =====================================================
+   Cabeçalho
+   ===================================================== */
+
+header { text-align: center; margin-bottom: 44px; }
+
+header h1 {
+    margin: 0 0 12px;
+    font-size: clamp(1.9rem, 5vw, 2.9rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;   /* distribui as palavras entre as linhas, sem deixar uma sozinha */
+    background: var(--degrade);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+header p {
+    max-width: 520px;
+    margin: 0 auto;
+    font-size: 1.05rem;
+    color: var(--texto-suave);
+}
+
+/* =====================================================
+   Cards elevados
+   ===================================================== */
+
+.card {
+    padding: 28px;
+    margin-bottom: 28px;
+    border-radius: 24px;
+    background: var(--superficie);
+    box-shadow: var(--elevado);
+}
+
+/* =====================================================
+   Formulário: campos afundados e botão em cor sólida
+   ===================================================== */
+
+/* minmax(0, 1fr): a coluna pode encolher abaixo do texto mais longo dos selects */
+#formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+
+#formulario label {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+
+#formulario input,
+#formulario select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 14px;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--texto);
+    background: var(--superficie);
+    box-shadow: var(--afundado);
+    transition: box-shadow 0.2s ease;
+}
+
+#formulario select {
+    appearance: none;
+    padding-right: 42px;
+    cursor: pointer;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--azul) 50%),
+        linear-gradient(135deg, var(--azul) 50%, transparent 50%);
+    background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+
+#formulario option { background: #ffffff; color: var(--texto); }
+
+#formulario input:focus,
+#formulario select:focus {
+    outline: none;
+    box-shadow: var(--afundado), 0 0 0 2px var(--azul-claro);
+}
+
+/* o destaque principal da página: botão cheio em degradê */
+#formulario button {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    padding: 18px;
+    border: 0;
+    border-radius: 16px;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ffffff;
+    cursor: pointer;
+    background: var(--degrade);
+    background-size: 200% 100%;
+    background-position: 0% 0%;
+    box-shadow:
+        6px 6px 16px var(--sombra-escura),
+        -6px -6px 16px var(--sombra-clara),
+        0 10px 24px rgba(14, 116, 144, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-position 0.4s ease;
+}
+
+/* ao passar o mouse, o degradê desliza e o botão sobe */
+#formulario button:hover {
+    background-position: 100% 0%;
+    transform: translateY(-2px);
+    box-shadow:
+        6px 6px 16px var(--sombra-escura),
+        -6px -6px 16px var(--sombra-clara),
+        0 14px 30px rgba(14, 116, 144, 0.45);
+}
+
+#formulario button:active {
+    transform: translateY(1px);
+    box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+#formulario button:focus-visible { outline: 3px solid var(--azul-claro); outline-offset: 4px; }
+
+/* esperando a IA: o degradê corre de um lado para o outro */
+#formulario button:disabled {
+    cursor: wait;
+    transform: none;
+    animation: carregando 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes carregando {
+    from { background-position: 0% 0%; }
+    to { background-position: 100% 0%; }
+}
+
+/* =====================================================
+   Mensagens
+   ===================================================== */
+
+.mensagem {
+    margin: 0 0 28px;
+    padding: 16px 20px 16px 48px;
+    position: relative;
+    border-radius: 16px;
+    font-weight: 600;
+    color: var(--azul);
+    background: var(--superficie);
+    box-shadow: var(--afundado);
+}
+
+/* ponto pulsante: indica que algo está acontecendo */
+.mensagem::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--degrade);
+    animation: ponto 1s ease-in-out infinite alternate;
+}
+
+@keyframes ponto {
+    to { transform: scale(0.6); opacity: 0.5; }
+}
+
+.mensagem.erro { color: var(--erro); }
+.mensagem.erro::before { background: var(--erro); animation: none; }
+
+/* =====================================================
+   Resultado: entra subindo
+   ===================================================== */
+
+#resultado .card { animation: entrar 0.5s ease-out both; }
+#resultado .card:nth-child(2) { animation-delay: 0.12s; }
+
+@keyframes entrar {
+    from { opacity: 0; transform: translateY(16px); }
+}
+
+/* =====================================================
+   Títulos e selos preenchidos
+   ===================================================== */
+
+h2 {
+    margin: 0 0 20px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* selo do classificador: azul sólido */
+.etiqueta {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 5px 14px;
+    border-radius: 999px;
+    color: #ffffff;
+    background: var(--azul);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.35);
+}
+
+/* selo da trilha gerada pela IA: verde sólido */
+#origem {
+    background: var(--verde);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.35);
+}
+
+/* trilha padrão: selo afundado e neutro */
+#origem.padrao {
+    color: var(--texto-suave);
+    background: var(--superficie);
+    box-shadow: var(--afundado-leve);
+}
+
+/* =====================================================
+   Painel 1 (Machine Learning)
+   ===================================================== */
+
+.plano { margin: 0 0 22px; font-size: 1.1rem; color: var(--texto-suave); }
+
+.plano strong {
+    margin-left: 6px;
+    font-size: 2.6rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    vertical-align: -0.12em;
+    background: linear-gradient(120deg, var(--azul), var(--azul-claro));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.barra {
+    display: grid;
+    grid-template-columns: 52px 1fr 64px;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+
+.barra span:last-child {
+    text-align: right;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: normal;
+    color: var(--texto);
+}
+
+.trilho {
+    height: 18px;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--superficie);
+    box-shadow: var(--afundado-leve);
+}
+
+.preenchimento {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--azul), var(--azul-claro));
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.55);
+    transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* =====================================================
+   Painel 2 (LLM): trilha como linha do tempo
+   ===================================================== */
+
+#resumo { margin: 0 0 8px; font-size: 1.02rem; }
+
+.total {
+    display: inline-block;
+    margin: 0 0 24px;
+    padding: 6px 14px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--verde);
+    background: var(--superficie);
+    box-shadow: var(--afundado-leve);
+}
+
+.etapas {
+    position: relative;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: etapa;
+    display: grid;
+    gap: 18px;
+}
+
+/* a linha que liga as etapas */
+.etapas::before {
+    content: '';
+    position: absolute;
+    left: 35px;
+    top: 24px;
+    bottom: 24px;
+    width: 3px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--verde-claro), var(--azul-claro));
+    opacity: 0.5;
+}
+
+.etapas li {
+    counter-increment: etapa;
+    position: relative;
+    padding: 16px 18px 16px 76px;
+    border-radius: 18px;
+    background: var(--superficie);
+    box-shadow: var(--elevado-leve);
+}
+
+/* número em círculo verde sólido */
+.etapas li::before {
+    content: counter(etapa);
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-weight: 800;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--verde-claro), var(--verde));
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.4);
+}
+
+.etapas h3 { margin: 0; font-size: 1.02rem; }
+.etapas p { margin: 0; color: var(--texto-suave); font-size: 0.92rem; }
+
+.etapas .detalhes {
+    margin: 2px 0 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--verde);
+}
+
+/* =====================================================
+   Acessibilidade e celular
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before { animation: none !important; transition: none !important; }
+}
+
+@media (max-width: 560px) {
+    main { padding: 40px 16px 56px; }
+    #formulario { grid-template-columns: minmax(0, 1fr); }
+    .card { padding: 22px 18px; border-radius: 20px; }
+    .etapas li { padding-left: 70px; }
+    .etapas::before { left: 35px; }
+}
+
+/* =====================================================
+   Simulador: link de volta e aviso
+   ===================================================== */
+
+/* botão de voltar: pílula elevada com a seta num círculo em degradê */
+.voltar {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 8px 20px 8px 8px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--azul);
+    background: var(--superficie);
+    box-shadow: var(--elevado-leve);
+    transition: box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.voltar-icone {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #ffffff;
+    background: var(--degrade);
+    box-shadow: 0 3px 8px rgba(14, 116, 144, 0.35);
+    transition: transform 0.2s ease;
+}
+
+/* ao passar o mouse: o botão sobe um pouco e a seta aponta o caminho de volta */
+.voltar:hover { color: var(--verde); transform: translateY(-1px); }
+.voltar:hover .voltar-icone { transform: translateX(-3px); }
+
+/* ao clicar: afunda na superfície */
+.voltar:active { transform: none; box-shadow: var(--afundado-leve); }
+
+.voltar:focus-visible { outline: 3px solid var(--azul-claro); outline-offset: 4px; }
+
+.aviso {
+    margin: 0 0 28px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    font-size: 0.92rem;
+    color: var(--texto-suave);
+    background: var(--superficie);
+    box-shadow: var(--afundado);
+}
+
+.aviso strong { color: var(--verde); }

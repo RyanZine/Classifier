@@ -29,7 +29,8 @@
             sem inventar cursos.
         </p>
         <div class="acoes">
-            <a class="botao principal" href="#demonstracao">Ver demonstração</a>
+            <a class="botao principal" href="simulador.html">Testar o simulador</a>
+            <a class="botao" href="#demonstracao">Ver demonstração</a>
             <a class="botao" href="https://github.com/RyanZine/Classifier" target="_blank" rel="noopener">Código no GitHub</a>
         </div>
     </header>
@@ -46,6 +47,9 @@
                 </video>
             </div>
             <p class="nota">Gravação da aplicação real. O trecho de espera pela resposta da LLM foi encurtado.</p>
+            <div class="acoes chamada">
+                <a class="botao principal" href="simulador.html">Agora teste você mesmo</a>
+            </div>
         </section>
 
         <!-- ===== PROBLEMA ===== -->
@@ -133,29 +137,6 @@
                 <li>JSON Schema</li>
                 <li>HTML, CSS e JavaScript</li>
             </ul>
-        </section>
-
-        <!-- ===== LIMITAÇÕES E PRÓXIMOS PASSOS ===== -->
-        <section class="secao">
-            <h2>Limitações e próximos passos</h2>
-            <div class="grade-2">
-                <div class="cartao">
-                    <h3>Limitações conhecidas</h3>
-                    <ul class="lista">
-                        <li>O classificador é treinado com apenas 6 exemplos: demonstra o pipeline, não generaliza.</li>
-                        <li>A validação confere a estrutura da trilha, não a coerência do texto gerado.</li>
-                        <li>O tempo de resposta depende da disponibilidade da LLM.</li>
-                    </ul>
-                </div>
-                <div class="cartao">
-                    <h3>Próximos passos</h3>
-                    <ul class="lista">
-                        <li>Persistir alunos e trilhas em banco de dados.</li>
-                        <li>Coletar feedback de conclusão como rótulo de treino.</li>
-                        <li>Fine-tuning periódico, promovendo versões só após avaliação.</li>
-                    </ul>
-                </div>
-            </div>
         </section>
 
     </main>
