@@ -71,11 +71,53 @@ formulario.addEventListener('submit', async (evento) => {
         }
 
         mostrarResultado(dados, aluno.horasEstudo);
+        prepararFeedback(aluno, dados.plano);
         mensagem.hidden = true;
     } catch (erro) {
         mostrarMensagem(erro.message, true);
     } finally {
         botao.disabled = false;
+    }
+});
+
+//feedback do aluno sobre o plano recomendado
+const caixaFeedback = document.querySelector('#feedback');
+let ultimaRecomendacao = null;
+
+function prepararFeedback(aluno, planoRecomendado) {
+    ultimaRecomendacao = { horasEstudo: aluno.horasEstudo, senioridade: aluno.senioridade, planoRecomendado };
+
+    document.querySelector('#outro-plano').textContent = planoRecomendado === 'Pro' ? 'Basic' : 'Pro';
+    caixaFeedback.querySelector('p').textContent = 'Esse plano faz sentido para você?';
+    caixaFeedback.querySelectorAll('button').forEach(botaoFeedback => { botaoFeedback.disabled = false; });
+    caixaFeedback.hidden = false;
+}
+
+caixaFeedback.addEventListener('click', async (evento) => {
+    const botaoClicado = evento.target.closest('button');
+    if (!botaoClicado || !ultimaRecomendacao) return;
+
+    //👍 confirma o plano recomendado; 👎 indica o outro plano como o certo
+    const { planoRecomendado } = ultimaRecomendacao;
+    const plano = botaoClicado.dataset.resposta === 'sim'
+        ? planoRecomendado
+        : (planoRecomendado === 'Pro' ? 'Basic' : 'Pro');
+
+    caixaFeedback.querySelectorAll('button').forEach(botaoFeedback => { botaoFeedback.disabled = true; });
+
+    try {
+        const resposta = await fetch('/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...ultimaRecomendacao, plano })
+        });
+        if (!resposta.ok) throw new Error();
+
+        caixaFeedback.querySelector('p').textContent = 'Obrigado! Sua resposta vai ajudar a treinar o modelo.';
+        ultimaRecomendacao = null;   //um feedback por recomendação
+    } catch {
+        caixaFeedback.querySelector('p').textContent = 'Não foi possível enviar sua resposta. Tente de novo.';
+        caixaFeedback.querySelectorAll('button').forEach(botaoFeedback => { botaoFeedback.disabled = false; });
     }
 });
 

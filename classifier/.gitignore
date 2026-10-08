@@ -11,3 +11,8 @@ modelo_salvo/
 #Demonstração: vídeos gravados e script de gravação (uso local)
 video/
 scripts/
+
+##feedbacks coletados (dados de uso, não versionados)
+dados/
+#Versões anteriores do modelo (backups do retreino)
+modelos_anteriores/

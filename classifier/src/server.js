@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import { gerarTrilha } from './llm/trilha.js';
 import { areas } from './catalogo.js';
 import {carregarModelo, classificar} from './classificador.js';
+import {salvarFeedback} from './feedback.js';
 
 const PORTA = Number(process.env.PORT) || 3000;
 
@@ -28,13 +29,26 @@ const schemaAluno = {
     additionalProperties: false
 };
 
+//contrato do feedback: o perfil do aluno, o plano recomendado e o plano que ele considerou certo
+const schemaFeedback = {
+    type: 'object',
+    properties: {
+        horasEstudo:      { type: 'number', minimum: 1, maximum: 40 },
+        senioridade:      { type: 'string', enum: ['Iniciante', 'Pleno', 'Senior'] },
+        planoRecomendado: { type: 'string', enum: ['Basic', 'Pro'] },
+        plano:            { type: 'string', enum: ['Basic', 'Pro'] }
+    },
+    required: ['horasEstudo', 'senioridade', 'planoRecomendado', 'plano'],
+    additionalProperties: false
+};
+
 //padronização dos erros
 app.setErrorHandler((error, request, reply) => {
     if (error.validation) {
         return reply.code(400).send({erro: `Dados inválidos: ${error.message}`});
     }
     request.log.error(error);
-    return reply.code(500).send({erro: 'Erro interno ao gerar a recomendação'});
+    return reply.code(500).send({erro: 'Erro interno no servidor.'});
 });
 
 //lista de linguagens e áreas para montar o formulário
@@ -66,6 +80,12 @@ app.post('/recomendar', { schema: { body: schemaAluno}}, async (request, reply) 
     });
 
     return {...classificacao, trilha};
+});
+
+//recebe o feedback do aluno sobre o plano; vira exemplo de treino no próximo retreino
+app.post('/feedback', { schema: { body: schemaFeedback } }, async (request, reply) => {
+    salvarFeedback(request.body);
+    return reply.code(201).send({ ok: true });
 });
 
 //carrega o modelo antes de aceitar pedidos

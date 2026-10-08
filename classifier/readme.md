@@ -151,17 +151,31 @@ O sistema completa cada etapa com os dados oficiais do catálogo (título, níve
 
 ### 5. Feedback
 
-A plataforma registra o que aconteceu depois da recomendação: **conclusão da trilha, abandono, avaliação do aluno e mudança de plano**. Esses eventos viram os **rótulos** dos novos exemplos de treino.
+Depois de ver o plano recomendado, o aluno responde se ele faz sentido (👍 / 👎). A resposta vira o **rótulo** de um novo exemplo de treino:
+
+* 👍 confirma o plano recomendado;
+* 👎 indica o outro plano como o correto.
+
+O feedback é enviado para `POST /feedback`, validado por JSON Schema e guardado em `dados/feedbacks.jsonl` (formato *JSON Lines*: um registro por linha, só acrescentado no fim do arquivo). Os dados de uso não são versionados.
+
+```json
+{"horasEstudo":8,"senioridade":"Pleno","planoRecomendado":"Pro","plano":"Basic","data":"2026-10-08T15:28:56.152Z"}
+```
+
+> Feedbacks futuros podem incluir conclusão da trilha, abandono e mudança de plano.
 
 ### 6. Aprendizado contínuo (fine-tuning)
 
-Executado periodicamente (ex.: `npm run retrain`), fora do caminho da requisição:
+Executado sob demanda com `npm run retrain`, nunca a cada clique, para que respostas isoladas (ou maliciosas) não mudem o modelo de imediato:
 
-1. Carrega o modelo em produção e os dados novos rotulados.
-2. Treina com **dados novos + amostra dos antigos**, evitando o *esquecimento catastrófico*.
-3. Avalia o novo modelo em uma **base de teste separada**.
-4. **Promove a nova versão só se ela superar a atual** (*champion/challenger*); caso contrário, mantém a anterior.
-5. Salva o modelo versionado (`model.json` + `weights.bin` + parâmetros de pré-processamento).
+1. **Lê e valida os feedbacks**; linhas corrompidas ou fora das regras são descartadas. Com menos de 5 feedbacks válidos, o retreino não acontece.
+2. **Separa os dados:** os 20% de feedbacks mais recentes ficam para teste; o treino usa **dados originais + feedbacks restantes**, evitando o *esquecimento catastrófico*.
+3. **Treina o desafiante** por *fine-tuning*: parte do modelo atual, com taxa de aprendizado menor.
+4. **Compara campeão × desafiante** na mesma base de teste (dados originais + feedbacks de teste).
+5. **Promove o desafiante só se ele não for pior**; o modelo anterior é guardado em `modelos_anteriores/` para permitir voltar atrás.
+6. **Registra cada retreino** em `dados/retreinos.jsonl` (data, acurácias e decisão).
+
+O servidor carrega o modelo na inicialização: depois de um retreino promovido, reinicie-o para usar o modelo novo.
 
 ---
 
@@ -174,7 +188,7 @@ Executado periodicamente (ex.: `npm run retrain`), fora do caminho da requisiç�
 * **RF03 — Classificação:** retornar o perfil do aluno com probabilidade associada.
 * **RF04 — Geração de trilha:** produzir trilha em JSON a partir do perfil e do catálogo, via LLM.
 * **RF05 — Validação da trilha:** descartar trilhas com módulos fora do catálogo, repetidos ou fora da ordem de pré-requisitos.
-* **RF06 — Feedback:** registrar conclusão, abandono e avaliação das trilhas.
+* **RF06 — Feedback:** registrar se o plano recomendado faz sentido para o aluno, como rótulo de treino.
 * **RF07 — Fine-tuning:** retreinar o modelo com dados novos e promover versões apenas após avaliação.
 * **RF08 — Fallback:** entregar trilha padrão, montada a partir do catálogo, quando a LLM não responder ou a resposta for inválida.
 
@@ -201,6 +215,7 @@ O servidor Fastify (`src/server.js`) carrega o modelo uma única vez na iniciali
 | `GET` | `/` | Interface web (`public/`) |
 | `GET` | `/areas` | Linguagens e áreas do catálogo, usadas para montar o formulário |
 | `POST` | `/recomendar` | Recebe o perfil do aluno e devolve plano, probabilidades e trilha |
+| `POST` | `/feedback` | Recebe a avaliação do aluno sobre o plano e guarda como exemplo de treino |
 
 Exemplo de pedido:
 
@@ -287,8 +302,8 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 | Servidor Fastify com validação por JSON Schema | ✅ Implementado |
 | Interface web (formulário, probabilidades e trilha) | ✅ Implementado |
 | Persistência dos alunos e das trilhas | 🔜 Planejado |
-| Coleta de feedback | 🔜 Planejado |
-| Fine-tuning com promoção de versões | 🔜 Planejado |
+| Coleta de feedback (👍 / 👎 sobre o plano) | ✅ Implementado |
+| Fine-tuning com avaliação, promoção e versionamento | ✅ Implementado |
 | Docker e deploy | 🔜 Planejado |
 
 > A prova de conceito do classificador (pipeline de ML isolado) está preservada no branch [`conceito/sistema-recomendacao-ml`](https://github.com/RyanZine/Projects/tree/conceito/sistema-recomendacao-ml).
@@ -312,7 +327,7 @@ Alavancas já aplicadas ou previstas para manter o custo baixo:
 | **Sprint 1** 🟡 | API e ingestão | Servidor HTTP, interface e validação ✅; persistência pendente |
 | **Sprint 2** ✅ | Classificação em serviço | Modelo carregado na inicialização; rota de recomendação |
 | **Sprint 3** ✅ | LLM e trilhas | Catálogo, prompt, saída estruturada, validação e fallback (protótipo concluído) |
-| **Sprint 4** | Aprendizado contínuo | Feedback, `npm run retrain`, avaliação e versionamento |
+| **Sprint 4** ✅ | Aprendizado contínuo | Feedback, `npm run retrain`, avaliação e versionamento |
 | **Sprint 5** | Produto | Docker, documentação da API e demonstração pública |
 
 ---
@@ -351,7 +366,8 @@ Outros comandos:
 
 ```bash
 npm start    # versão de terminal: classifica um aluno de exemplo e gera a trilha
-npm test     # roda os testes automatizados (sem chamar a API da LLM)
+npm test         # roda os testes automatizados (sem chamar a API da LLM)
+npm run retrain  # retreina o classificador com os feedbacks coletados
 ```
 
 ### Testes
@@ -365,6 +381,8 @@ Os testes ficam em `testes/` e usam o executor nativo do Node (`node:test`):
 | `catalogo.test.js` | ids únicos, áreas e níveis válidos, pré-requisitos existentes e filtro por aluno |
 | `trilha.test.js` | rejeição de respostas inválidas da LLM e trilha padrão válida nas 63 combinações |
 | `simulador.test.js` | cópias usadas pelo simulador da landing page (`docs/`) iguais ao sistema |
+| `feedback.test.js` | gravação e leitura dos feedbacks, descartando linhas corrompidas e registros inválidos |
+| `retreino.test.js` | separação treino/teste, regra de promoção e retreino completo em pastas temporárias |
 
 > O arquivo `.env` contém a chave da API e **nunca** deve ser enviado ao repositório (já está no `.gitignore`).
 
