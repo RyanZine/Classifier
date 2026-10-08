@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classifier: Trilhas de Estudo com ML + LLM</title>
+    <meta name="description" content="Sistema de recomendação que combina um classificador de Machine Learning em TensorFlow.js com uma LLM limitada para gerar trilhas de estudo personalizadas.">
+
+    <!-- prévia do link ao compartilhar no LinkedIn -->
+    <meta property="og:title" content="Classifier: Trilhas de Estudo com ML + LLM">
+    <meta property="og:description" content="Um modelo de Machine Learning recomenda o plano. Uma LLM monta a trilha a partir de um catálogo fechado.">
+    <meta property="og:image" content="https://ryanzine.github.io/Classifier/capa.jpg">
+    <meta property="og:url" content="https://ryanzine.github.io/Classifier/">
+    <meta property="og:type" content="website">
+
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+    <!-- ===== HERO ===== -->
+    <header class="hero">
+        <img class="logo" src="logo-horizontal.svg" alt="Classifier" width="230" height="64">
+        <p class="selo">Machine Learning + LLM em Node.js</p>
+        <h1>Trilhas de estudo personalizadas por <span>duas IAs</span></h1>
+        <p class="subtitulo">
+            Um modelo de Machine Learning próprio classifica o perfil do aluno.
+            Uma LLM limitada monta a trilha a partir de um catálogo fechado,
+            sem inventar cursos.
+        </p>
+        <div class="acoes">
+            <a class="botao principal" href="#demonstracao">Ver demonstração</a>
+            <a class="botao" href="https://github.com/RyanZine/Classifier" target="_blank" rel="noopener">Código no GitHub</a>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- ===== DEMONSTRAÇÃO ===== -->
+        <section id="demonstracao" class="secao">
+            <h2>Veja funcionando</h2>
+            <p class="intro">O aluno preenche o perfil, o classificador recomenda o plano e a LLM gera a trilha.</p>
+            <div class="moldura-video">
+                <video id="video" src="demo.webm" poster="capa.jpg" controls muted playsinline loop preload="metadata">
+                    Seu navegador não reproduz este vídeo.
+                </video>
+            </div>
+            <p class="nota">Gravação da aplicação real. O trecho de espera pela resposta da LLM foi encurtado.</p>
+        </section>
+
+        <!-- ===== PROBLEMA ===== -->
+        <section class="secao">
+            <h2>O problema</h2>
+            <div class="grade-2">
+                <div class="cartao">
+                    <h3>Catálogos grandes, alunos perdidos</h3>
+                    <p>Plataformas de ensino têm dezenas de cursos. Sem orientação, o aluno escolhe por tentativa, desanima e abandona.</p>
+                </div>
+                <div class="cartao">
+                    <h3>LLMs inventam</h3>
+                    <p>Pedir uma trilha a uma LLM sem limites gera cursos que não existem, em ordens que ignoram pré-requisitos.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== COMO FUNCIONA ===== -->
+        <section class="secao">
+            <h2>Como funciona</h2>
+            <p class="intro">Cada IA faz o que sabe fazer melhor.</p>
+            <ol class="fluxo">
+                <li class="etapa">
+                    <span class="numero">1</span>
+                    <h3>Perfil do aluno</h3>
+                    <p>Horas semanais, senioridade, linguagem e área, validados por JSON Schema.</p>
+                </li>
+                <li class="etapa azul">
+                    <span class="numero">2</span>
+                    <h3>Classificador de ML</h3>
+                    <p>Rede neural em TensorFlow.js recomenda o plano <strong>Basic</strong> ou <strong>Pro</strong>, com a confiança.</p>
+                </li>
+                <li class="etapa verde">
+                    <span class="numero">3</span>
+                    <h3>LLM limitada</h3>
+                    <p>A Gemini escolhe e ordena módulos de um catálogo filtrado, e justifica cada escolha.</p>
+                </li>
+                <li class="etapa">
+                    <span class="numero">4</span>
+                    <h3>Validação</h3>
+                    <p>Módulos, ordem e pré-requisitos são conferidos. Se algo falhar, entra a trilha padrão.</p>
+                </li>
+            </ol>
+        </section>
+
+        <!-- ===== DECISÕES TÉCNICAS ===== -->
+        <section class="secao">
+            <h2>Decisões técnicas</h2>
+            <div class="grade-3">
+                <div class="cartao">
+                    <h3>Catálogo fechado e filtrado</h3>
+                    <p>69 módulos em 2 linguagens e 21 áreas. A LLM recebe só os 6 a 8 relevantes para o aluno.</p>
+                </div>
+                <div class="cartao">
+                    <h3>JSON Schema nas duas pontas</h3>
+                    <p>Valida a entrada no Fastify e define a saída da LLM, com <code>enum</code> que impede IDs inventados.</p>
+                </div>
+                <div class="cartao">
+                    <h3>Defesa em camadas</h3>
+                    <p>Mesmo com o schema, o sistema rejeita módulos repetidos, fora de ordem ou trilhas vazias.</p>
+                </div>
+                <div class="cartao">
+                    <h3>Plano B sempre pronto</h3>
+                    <p>Uma trilha padrão, montada por ordenação topológica dos pré-requisitos, quando a LLM falha.</p>
+                </div>
+                <div class="cartao">
+                    <h3>Resiliência e prazo</h3>
+                    <p>Novas tentativas com backoff, troca automática de modelo e no máximo 30 segundos de espera.</p>
+                </div>
+                <div class="cartao">
+                    <h3>Privacidade e segurança</h3>
+                    <p>Nenhum dado pessoal chega à LLM, e o texto gerado nunca é interpretado como HTML.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== STACK ===== -->
+        <section class="secao">
+            <h2>Tecnologias</h2>
+            <ul class="stack">
+                <li>Node.js</li>
+                <li>TensorFlow.js</li>
+                <li>Google Gemini</li>
+                <li>Fastify</li>
+                <li>JSON Schema</li>
+                <li>HTML, CSS e JavaScript</li>
+            </ul>
+        </section>
+
+        <!-- ===== LIMITAÇÕES E PRÓXIMOS PASSOS ===== -->
+        <section class="secao">
+            <h2>Limitações e próximos passos</h2>
+            <div class="grade-2">
+                <div class="cartao">
+                    <h3>Limitações conhecidas</h3>
+                    <ul class="lista">
+                        <li>O classificador é treinado com apenas 6 exemplos: demonstra o pipeline, não generaliza.</li>
+                        <li>A validação confere a estrutura da trilha, não a coerência do texto gerado.</li>
+                        <li>O tempo de resposta depende da disponibilidade da LLM.</li>
+                    </ul>
+                </div>
+                <div class="cartao">
+                    <h3>Próximos passos</h3>
+                    <ul class="lista">
+                        <li>Persistir alunos e trilhas em banco de dados.</li>
+                        <li>Coletar feedback de conclusão como rótulo de treino.</li>
+                        <li>Fine-tuning periódico, promovendo versões só após avaliação.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="rodape">
+        <p>Projeto de <strong>Ryan Zinedine</strong></p>
+        <p><a href="https://github.com/RyanZine/Classifier" target="_blank" rel="noopener">github.com/RyanZine/Classifier</a></p>
+    </footer>
+
+    <script>
+        const video = document.getElementById('video');
+
+        //o primeiro segundo da gravação é a página ainda carregando (tela branca)
+        const INICIO_VIDEO = 1;
+
+        //trecho de espera pela resposta da LLM, pulado na reprodução
+        const INICIO_ESPERA = 10;
+        const FIM_ESPERA = 27;
+
+        video.addEventListener('timeupdate', () => {
+            if (video.currentTime < INICIO_VIDEO) {
+                video.currentTime = INICIO_VIDEO;
+            } else if (video.currentTime > INICIO_ESPERA && video.currentTime < FIM_ESPERA) {
+                video.currentTime = FIM_ESPERA;
+            }
+        });
+
+        //toca sozinho quando aparece na tela (exceto para quem prefere menos movimento)
+        const prefereMenosMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (!prefereMenosMovimento && 'IntersectionObserver' in window) {
+            new IntersectionObserver(([entrada]) => {
+                if (entrada.isIntersecting) video.play().catch(() => {});
+                else video.pause();
+            }, { threshold: 0.5 }).observe(video);
+        }
+    </script>
+</body>
+</html>

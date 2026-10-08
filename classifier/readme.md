@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../docs/logo-horizontal.svg" alt="Classifier" width="320">
+</p>
+
 # Classifier — Recomendação de Trilhas de Estudo com Machine Learning + LLM
 
 O **Classifier** é uma plataforma de recomendação educacional que combina dois tipos de IA, cada um no papel em que é mais forte:
